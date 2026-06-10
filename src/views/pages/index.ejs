@@ -1,198 +1,343 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <script src="https://cdn.tailwindcss.com"></script>
   <title>Lead Enrichment Tool</title>
+  <style>
+    /* Melhorias de toque em mobile */
+    @media (max-width: 640px) {
+      button, .clickable, [onclick] {
+        min-height: 44px;
+      }
+    }
+    
+    /* Quebra de texto em todas as células da tabela */
+    td, th {
+      word-break: break-word;
+      max-width: 250px;
+    }
+    
+    /* Rolagem suave para a tabela */
+    .overflow-x-auto {
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Animações suaves */
+    .transition-smooth {
+      transition: all 0.2s ease-in-out;
+    }
+  </style>
 </head>
-<body class="bg-gray-50 p-8">
-  <div class="max-w-6xl mx-auto bg-white p-6 rounded-lg shadow-md">
-    <h1 class="text-2xl font-bold mb-4">Enriquecimento de Leads</h1>
+<body class="bg-gray-50 p-2 sm:p-4 md:p-6 lg:p-8">
+  <div class="max-w-7xl mx-auto bg-white rounded-lg shadow-md">
+    <!-- Cabeçalho responsivo -->
+    <div class="p-4 sm:p-6 border-b border-gray-200">
+      <h1 class="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800">📊 Lead Enrichment Tool</h1>
+      <p class="text-xs sm:text-sm text-gray-500 mt-1">Enriqueça e gerencie seus leads com informações avançadas</p>
+    </div>
 
-    <!-- Tabela de Leads -->
-    <% if (Array.isArray(leads) && leads.length > 0) { %>
-      <div class="mb-8">
-        <h2 class="text-xl font-semibold mb-3">Leads Cadastrados</h2>
-        <div class="overflow-x-auto">
-          <table class="w-full border-collapse bg-white text-xs">
-            <thead>
-              <tr class="bg-blue-600 text-white">
+    <div class="p-4 sm:p-6">
+      <!-- Tabela de Leads -->
+      <% if (Array.isArray(leads) && leads.length > 0) { %>
+        <div class="mb-8">
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
+            <h2 class="text-lg sm:text-xl font-semibold text-gray-800">📋 Leads Cadastrados</h2>
+            <span class="text-xs sm:text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+              Total: <%= leads.length %> lead(s)
+            </span>
+          </div>
+          
+          <!-- Tabela Responsiva -->
+          <div class="overflow-x-auto shadow-md rounded-lg border border-gray-200">
+            <div class="min-w-full inline-block align-middle">
+              <div class="overflow-hidden">
+                <table class="min-w-full divide-y divide-gray-200">
+                  <thead class="bg-blue-600">
+                    <tr>
+                      <!-- Colunas ESSENCIAIS (sempre visíveis) -->
+                      <th scope="col" class="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-white uppercase tracking-wider">ID</th>
+                      <th scope="col" class="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-white uppercase tracking-wider">E-mail</th>
+                      <th scope="col" class="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Nome</th>
+                      
+                      <!-- Coluna visível a partir de SM (640px) -->
+                      <th scope="col" class="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-white uppercase tracking-wider hidden sm:table-cell">Domínio</th>
+                      
+                      <!-- Coluna visível a partir de MD (768px) -->
+                      <th scope="col" class="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-white uppercase tracking-wider hidden md:table-cell">MX</th>
+                      
+                      <!-- Colunas visíveis a partir de LG (1024px) -->
+                      <th scope="col" class="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-white uppercase tracking-wider hidden lg:table-cell">Status</th>
+                      <th scope="col" class="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-white uppercase tracking-wider hidden lg:table-cell">Techs</th>
+                      <th scope="col" class="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-white uppercase tracking-wider hidden lg:table-cell">E-mails Expostos</th>
+                      
+                      <!-- Ações sempre visíveis -->
+                      <th scope="col" class="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium text-white uppercase tracking-wider">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody class="bg-white divide-y divide-gray-200">
+                    <% if (Array.isArray(leads) && leads.length > 0) { %>
+                      <% leads.forEach(function(item, idx) { %>
+                        <tr class="<%= idx % 2 === 0 ? 'bg-gray-50' : 'bg-white' %> hover:bg-blue-50 transition-smooth cursor-pointer"
+                            data-lead-id="<%= item.id %>" title="Clique para ver detalhes">
+                          
+                          <!-- ID -->
+                          <td class="px-2 sm:px-3 py-2 text-xs text-gray-800 font-mono"><%= item.id %></td>
+                          
+                          <!-- E-mail (mascarado se disponível) -->
+                          <td class="px-2 sm:px-3 py-2 text-xs text-gray-800 break-words"><%= item.emailMasked || item.email || '—' %></td>
+                          
+                          <!-- Nome -->
+                          <td class="px-2 sm:px-3 py-2 text-xs text-gray-800 break-words font-medium"><%= item.name || '—' %></td>
+                          
+                          <!-- Domínio (escondido em mobile) -->
+                          <td class="px-2 sm:px-3 py-2 text-xs text-gray-800 break-words hidden sm:table-cell"><%= item.domain || '—' %></td>
+                          
+                          <!-- MX Status (escondido até MD) -->
+                          <td class="px-2 sm:px-3 py-2 text-xs hidden md:table-cell">
+                            <% if (item.mxStatus === true) { %>
+                              <span class="text-green-600 font-bold">✓ Sim</span>
+                            <% } else if (item.mxStatus === false) { %>
+                              <span class="text-red-500">✗ Não</span>
+                            <% } else { %>
+                              <span class="text-gray-400 italic">—</span>
+                            <% } %>
+                          </td>
+                          
+                          <!-- Status (escondido até LG) -->
+                          <td class="px-2 sm:px-3 py-2 text-xs hidden lg:table-cell">
+                            <% if (item.status) { %>
+                              <span class="inline-block px-2 py-0.5 rounded-full text-xs 
+                                <%= item.status === 'enriched' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' %>">
+                                <%= item.status %>
+                              </span>
+                            <% } else { %>
+                              <span class="text-gray-400 italic">—</span>
+                            <% } %>
+                          </td>
+                          
+                          <!-- Tecnologias (escondido até LG) -->
+                          <td class="px-2 sm:px-3 py-2 text-xs hidden lg:table-cell">
+                            <% if (item.technologies && Array.isArray(item.technologies) && item.technologies.length > 0) { %>
+                              <span class="text-blue-600 font-medium"><%= item.technologies.length %> item(s)</span>
+                            <% } else { %>
+                              <span class="text-gray-400 italic">—</span>
+                            <% } %>
+                          </td>
+                          
+                          <!-- E-mails Expostos (escondido até LG) -->
+                          <td class="px-2 sm:px-3 py-2 text-xs hidden lg:table-cell">
+                            <% if (item.exposedEmails && Array.isArray(item.exposedEmails) && item.exposedEmails.length > 0) { %>
+                              <span class="text-red-600 font-medium"><%= item.exposedEmails.length %> e-mail(s)</span>
+                            <% } else { %>
+                              <span class="text-gray-400 italic">—</span>
+                            <% } %>
+                          </td>
+                          
+                          <!-- Ações -->
+                          <td class="px-2 sm:px-3 py-2 text-center whitespace-nowrap">
+                            <button onclick="event.stopPropagation(); openEditById(<%= item.id %>)" 
+                                    class="bg-yellow-500 text-white text-xs px-2 py-1 rounded hover:bg-yellow-600 transition-smooth mr-1"
+                                    title="Editar lead">
+                              ✎ Editar
+                            </button>
+                            <button onclick="event.stopPropagation(); deleteLead(<%= item.id %>)" 
+                                    class="bg-red-500 text-white text-xs px-2 py-1 rounded hover:bg-red-700 transition-smooth"
+                                    title="Excluir lead">
+                              ✕ Excluir
+                            </button>
+                          </td>
+                        </tr>
+                      <% }); %>
+                    <% } else { %>
+                      <tr>
+                        <td colspan="9" class="px-3 py-8 text-center text-gray-400">
+                          Nenhum lead encontrado
+                        </td>
+                      </tr>
+                    <% } %>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            
+            <!-- Aviso para dispositivos móveis -->
+            <div class="text-xs text-gray-400 p-2 text-center border-t border-gray-200 bg-gray-50 sm:hidden">
+              ↳ Role horizontalmente para ver mais informações
+            </div>
+          </div>
+        </div>
+      <% } else if (Array.isArray(leads) && leads.length === 0) { %>
+        <div class="mb-8 p-6 bg-gray-50 rounded-lg border border-gray-200 text-center">
+          <p class="text-gray-400">📭 Nenhum lead encontrado. Use o formulário abaixo para enriquecer um novo lead.</p>
+        </div>
+      <% } %>
+
+      <!-- Formulário de Enriquecimento - Totalmente Responsivo -->
+      <div class="mb-6">
+        <h2 class="text-lg sm:text-xl font-semibold text-gray-800 mb-3">➕ Novo Lead</h2>
+        <form action="/enrich" method="POST" class="flex flex-col sm:flex-row gap-2">
+          <input type="email" name="email" required placeholder="E-mail do lead *" 
+                 class="w-full sm:flex-1 border border-gray-300 p-2 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          <input type="text" name="nome" required placeholder="Nome *" 
+                 class="w-full sm:flex-1 border border-gray-300 p-2 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          <input type="text" name="dominio" placeholder="Domínio (ex: empresa.com)" 
+                 class="w-full sm:flex-1 border border-gray-300 p-2 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          <button type="submit" class="w-full sm:w-auto bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition-smooth text-sm sm:text-base font-medium">
+            🔍 Enriquecer
+          </button>
+        </form>
+      </div>
+
+      <!-- Mensagem de Erro -->
+      <% if (error) { %>
+        <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+          ⚠️ <%= error %>
+        </div>
+      <% } %>
+
+      <!-- Notificação Toast -->
+      <div id="notification" class="fixed bottom-4 right-4 z-50 hidden transition-smooth"></div>
+
+      <!-- Detalhes do Lead -->
+      <% if (lead) { %>
+        <div id="leadDetail" class="mt-6">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-lg sm:text-xl font-semibold text-gray-800">🔍 Lead Enriquecido</h2>
+            <button onclick="document.getElementById('leadDetail').style.display='none'" 
+                    class="text-gray-400 hover:text-gray-600 text-xl">
+              ✕
+            </button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full border-collapse bg-white text-xs sm:text-sm">
+              <thead>
+                <tr class="bg-gray-100">
+                  <th class="border border-gray-300 px-3 py-2 text-left font-medium text-gray-700">Campo</th>
+                  <th class="border border-gray-300 px-3 py-2 text-left font-medium text-gray-700">Valor</th>
+                </tr>
+              </thead>
+              <tbody id="leadDetailBody">
                 <% 
-                  const columns = ['id', 'emailMasked', 'name', 'domain', 'mxStatus', 'status', 'technologies', 'exposedEmails', 'dnsMxRecords', 'dorkFindings'];
-                  const colLabels = { id: 'ID', emailMasked: 'E-mail', name: 'Nome', domain: 'Domínio', mxStatus: 'MX', status: 'Status', technologies: 'Techs', exposedEmails: 'E-mails Expostos', dnsMxRecords: 'Reg. MX', dorkFindings: 'Dorks' };
-                  columns.forEach(function(col) {
+                  const formatValue = (val, key) => {
+                    if (val === null || val === undefined) return '<span class="text-gray-400 italic">—</span>';
+                    if (Array.isArray(val)) {
+                      if (val.length === 0) return '<span class="text-gray-400 italic">Nenhum</span>';
+                      if (typeof val[0] === 'object' && val[0] !== null) {
+                        return '<span class="text-blue-600 font-medium">' + val.length + ' registro(s)</span> <button onclick="event.stopPropagation(); toggleDetail(this)" class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded hover:bg-blue-200">Ver detalhes</button><div class="hidden mt-1"><pre class="text-xs bg-gray-50 p-2 rounded max-h-60 overflow-auto">' + escapeHtml(JSON.stringify(val, null, 2)) + '</pre></div>';
+                      }
+                      return val.map(v => '<span class="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded mr-1 mb-1">' + escapeHtml(String(v)) + '</span>').join('');
+                    }
+                    if (typeof val === 'boolean') return val ? '<span class="text-green-600 font-bold">✅ Sim</span>' : '<span class="text-red-500">❌ Não</span>';
+                    if (typeof val === 'object') {
+                      if (val.registrantName || val.registrantEmail) {
+                        const lines = [];
+                        if (val.registrantName) lines.push('Titular: ' + val.registrantName);
+                        if (val.registrantEmail) lines.push('E-mail: ' + val.registrantEmail);
+                        if (val.registrationDate) lines.push('Registro: ' + new Date(val.registrationDate).toLocaleDateString('pt-BR'));
+                        if (val.expirationDate) lines.push('Expiração: ' + new Date(val.expirationDate).toLocaleDateString('pt-BR'));
+                        if (val.nameservers && val.nameservers.length) lines.push('NS: ' + val.nameservers.join(', '));
+                        if (val.source) lines.push('Fonte: ' + val.source);
+                        return lines.map(l => '<div class="text-xs text-gray-700">' + escapeHtml(l) + '</div>').join('') +
+                          ' <button onclick="event.stopPropagation(); toggleDetail(this)" class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded hover:bg-gray-200 mt-1">JSON completo</button><div class="hidden mt-1"><pre class="text-xs bg-gray-50 p-2 rounded max-h-60 overflow-auto">' + escapeHtml(JSON.stringify(val, null, 2)) + '</pre></div>';
+                      }
+                      return '<pre class="text-xs bg-gray-50 p-2 rounded max-w-lg overflow-auto">' + escapeHtml(JSON.stringify(val, null, 2)) + '</pre>';
+                    }
+                    return escapeHtml(String(val));
+                  };
+                  const escapeHtml = (str) => {
+                    if (!str) return '';
+                    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+                  };
+                  const labelMap = {
+                    id: 'ID', email: 'E-mail', emailMasked: 'E-mail Mascarado', name: 'Nome',
+                    domain: 'Domínio', mxStatus: 'MX Ativo', status: 'Status',
+                    technologies: 'Tecnologias Detectadas', socialLinks: 'Links Sociais',
+                    socialProfileSummaries: 'Resumos de Perfis Sociais', exposedEmails: 'E-mails Expostos',
+                    exposedPhones: 'Telefones Expostos', exposedAdminPaths: 'Caminhos Admin Expostos',
+                    exposedDocuments: 'Documentos Expostos', exposedConfigFiles: 'Arquivos de Config Expostos',
+                    nameMentions: 'Menções do Nome', nameMentionUrls: 'URLs de Menções',
+                    dorkFindings: 'Dorks Encontrados',
+                    dnsMxRecords: 'Registros MX', dnsARecords: 'Registros A',
+                    dnsAaaaRecords: 'Registros AAAA', dnsCnameRecords: 'Registros CNAME',
+                    dnsTxtRecords: 'Registros TXT',
+                    serperRawData: 'Dados Brutos (Serper)',
+                    rdap: 'Registro RDAP (Domínio)',
+                    created_at: 'Criado em', updated_at: 'Atualizado em'
+                  };
+                  Object.keys(lead).forEach(function(key) {
+                    const label = labelMap[key] || key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
                 %>
-                  <th class="border border-blue-500 px-3 py-2 text-left font-medium whitespace-nowrap"><%= colLabels[col] %></th>
+                <tr class="hover:bg-gray-50">
+                  <td class="border border-gray-300 px-3 py-2 text-sm font-medium text-gray-600"><%= label %></td>
+                  <td class="border border-gray-300 px-3 py-2 text-sm text-gray-800"><%- formatValue(lead[key], key) %></td>
+                </tr>
                 <% }); %>
-                  <th class="border border-blue-500 px-3 py-2 text-center font-medium whitespace-nowrap">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              <% 
-                const fmtCell = (val) => {
-                  if (val === null || val === undefined) return '<span class="text-gray-400 italic">—</span>';
-                  if (Array.isArray(val)) return val.length > 0 ? val.length + ' itens' : '<span class="text-gray-400 italic">0</span>';
-                  if (typeof val === 'boolean') return val ? '<span class="text-green-600 font-bold">✓</span>' : '<span class="text-red-500">✗</span>';
-                  return String(val);
-                };
-                leads.forEach(function(item, idx) { 
-              %>
-              <tr class="<%= idx % 2 === 0 ? 'bg-gray-50' : 'bg-white' %> hover:bg-blue-100 transition cursor-pointer"
-                  data-lead-id="<%= item.id %>" title="Clique para ver detalhes">
-                <% columns.forEach(function(col) { %>
-                  <td class="border border-gray-300 px-3 py-2 text-gray-800 whitespace-nowrap"><%- fmtCell(item[col]) %></td>
-                <% }); %>
-                  <td class="border border-gray-300 px-3 py-2 text-center whitespace-nowrap">
-                    <button onclick="event.stopPropagation(); openEditById(<%= item.id %>)" 
-                            class="bg-yellow-500 text-white text-xs px-2 py-1 rounded hover:bg-yellow-600 transition mr-1"
-                            title="Editar lead">
-                      ✎
-                    </button>
-                    <button onclick="event.stopPropagation(); deleteLead(<%= item.id %>)" 
-                            class="bg-red-500 text-white text-xs px-2 py-1 rounded hover:bg-red-700 transition"
-                            title="Excluir lead">
-                      ✕
-                    </button>
-                  </td>
-              </tr>
-              <% }); %>
-            </tbody>
-          </table>
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
-    <% } else if (Array.isArray(leads) && leads.length === 0) { %>
-      <p class="text-gray-400 text-center mb-6">Nenhum lead encontrado. Use o formulário abaixo para enriquecer um novo lead.</p>
-    <% } %>
-
-    <!-- Formulário de Enriquecimento -->
-    <form action="/enrich" method="POST" class="flex flex-wrap gap-2 mb-6">
-      <input type="email" name="email" required placeholder="E-mail do lead" class="flex-1 min-w-[200px] border p-2 rounded">
-      <input type="text" name="nome" required placeholder="Nome" class="flex-1 min-w-[150px] border p-2 rounded">
-      <input type="text" name="dominio" placeholder="Domínio (ex: empresa.com)" class="flex-1 min-w-[150px] border p-2 rounded">
-      <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">Enriquecer</button>
-    </form>
-
-    <% if (error) { %>
-      <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded text-red-700">
-        <%= error %>
-      </div>
-    <% } %>
-
-    <!-- Notificação -->
-    <div id="notification" class="mb-4 p-3 rounded text-sm hidden"></div>
-
-    <!-- Detalhes do Lead (server-rendered ou clique na tabela) -->
-    <% if (lead) { %>
-      <div id="leadDetail" class="mt-6">
-        <h2 class="text-xl font-semibold mb-3">Lead Enriquecido</h2>
-        <div class="overflow-x-auto">
-          <table class="w-full border-collapse bg-white">
-            <thead>
-              <tr class="bg-gray-100">
-                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-medium text-gray-700">Campo</th>
-                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-medium text-gray-700">Valor</th>
-              </tr>
-            </thead>
-            <tbody id="leadDetailBody">
-              <% 
-                const formatValue = (val, key) => {
-                  if (val === null || val === undefined) return '<span class="text-gray-400 italic">—</span>';
-                  if (Array.isArray(val)) {
-                    if (val.length === 0) return '<span class="text-gray-400 italic">Nenhum</span>';
-                    // Se for array de objetos (serperRawData), mostra resumo
-                    if (typeof val[0] === 'object' && val[0] !== null) {
-                      return '<span class="text-blue-600 font-medium">' + val.length + ' registro(s)</span> <button onclick="event.stopPropagation(); toggleDetail(this)" class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded hover:bg-blue-200">Ver detalhes</button><div class="hidden mt-1"><pre class="text-xs bg-gray-50 p-2 rounded max-h-60 overflow-auto">' + escapeHtml(JSON.stringify(val, null, 2)) + '</pre></div>';
-                    }
-                    return val.map(v => '<span class="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded mr-1 mb-1">' + escapeHtml(String(v)) + '</span>').join('');
-                  }
-                  if (typeof val === 'boolean') return val ? '<span class="text-green-600 font-bold">✅ Sim</span>' : '<span class="text-red-500">❌ Não</span>';
-                  if (typeof val === 'object') {
-                    // rdap: mostrar campos principais
-                    if (val.registrantName || val.registrantEmail) {
-                      const lines = [];
-                      if (val.registrantName) lines.push('Titular: ' + val.registrantName);
-                      if (val.registrantEmail) lines.push('E-mail: ' + val.registrantEmail);
-                      if (val.registrationDate) lines.push('Registro: ' + new Date(val.registrationDate).toLocaleDateString('pt-BR'));
-                      if (val.expirationDate) lines.push('Expiração: ' + new Date(val.expirationDate).toLocaleDateString('pt-BR'));
-                      if (val.nameservers && val.nameservers.length) lines.push('NS: ' + val.nameservers.join(', '));
-                      if (val.source) lines.push('Fonte: ' + val.source);
-                      return lines.map(l => '<div class="text-xs text-gray-700">' + escapeHtml(l) + '</div>').join('') +
-                        ' <button onclick="event.stopPropagation(); toggleDetail(this)" class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded hover:bg-gray-200 mt-1">JSON completo</button><div class="hidden mt-1"><pre class="text-xs bg-gray-50 p-2 rounded max-h-60 overflow-auto">' + escapeHtml(JSON.stringify(val, null, 2)) + '</pre></div>';
-                    }
-                    return '<pre class="text-xs bg-gray-50 p-2 rounded max-w-lg overflow-auto">' + escapeHtml(JSON.stringify(val, null, 2)) + '</pre>';
-                  }
-                  return escapeHtml(String(val));
-                };
-                const escapeHtml = (str) => {
-                  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-                };
-                const labelMap = {
-                  id: 'ID', email: 'E-mail', emailMasked: 'E-mail Mascarado', name: 'Nome',
-                  domain: 'Domínio', mxStatus: 'MX Ativo', status: 'Status',
-                  technologies: 'Tecnologias Detectadas', socialLinks: 'Links Sociais',
-                  socialProfileSummaries: 'Resumos de Perfis Sociais', exposedEmails: 'E-mails Expostos',
-                  exposedPhones: 'Telefones Expostos', exposedAdminPaths: 'Caminhos Admin Expostos',
-                  exposedDocuments: 'Documentos Expostos', exposedConfigFiles: 'Arquivos de Config Expostos',
-                  nameMentions: 'Menções do Nome', nameMentionUrls: 'URLs de Menções',
-                  dorkFindings: 'Dorks Encontrados',
-                  dnsMxRecords: 'Registros MX', dnsARecords: 'Registros A',
-                  dnsAaaaRecords: 'Registros AAAA', dnsCnameRecords: 'Registros CNAME',
-                  dnsTxtRecords: 'Registros TXT',
-                  serperRawData: 'Dados Brutos (Serper)',
-                  rdap: 'Registro RDAP (Domínio)',
-                  created_at: 'Criado em', updated_at: 'Atualizado em'
-                };
-                Object.keys(lead).forEach(function(key) {
-                  const label = labelMap[key] || key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-              %>
-              <tr class="hover:bg-gray-50">
-                <td class="border border-gray-300 px-4 py-2 text-sm font-medium text-gray-600"><%= label %></td>
-                <td class="border border-gray-300 px-4 py-2 text-sm text-gray-800"><%- formatValue(lead[key], key) %></td>
-              </tr>
-              <% }); %>
-            </tbody>
-          </table>
+      <% } else { %>
+        <div id="leadDetail" class="mt-6 hidden">
+          <div class="flex items-center justify-between mb-3">
+            <h2 id="leadDetailTitle" class="text-lg sm:text-xl font-semibold text-gray-800">🔍 Detalhes do Lead</h2>
+            <button onclick="document.getElementById('leadDetail').classList.add('hidden')" 
+                    class="text-gray-400 hover:text-gray-600 text-xl">
+              ✕
+            </button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full border-collapse bg-white">
+              <thead>
+                <tr class="bg-gray-100">
+                  <th class="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">Campo</th>
+                  <th class="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">Valor</th>
+                </tr>
+              </thead>
+              <tbody id="leadDetailBody"></tbody>
+            </table>
+          </div>
         </div>
-      </div>
-    <% } else { %>
-      <div id="leadDetail" class="mt-6 hidden">
-        <h2 id="leadDetailTitle" class="text-xl font-semibold mb-3">Detalhes do Lead</h2>
-        <div class="overflow-x-auto">
-          <table class="w-full border-collapse bg-white">
-            <thead>
-              <tr class="bg-gray-100">
-                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-medium text-gray-700">Campo</th>
-                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-medium text-gray-700">Valor</th>
-              </tr>
-            </thead>
-            <tbody id="leadDetailBody"></tbody>
-          </table>
-        </div>
-      </div>
-    <% } %>
+      <% } %>
 
-    <% if (!lead && !error && (!Array.isArray(leads) || leads.length === 0)) { %>
-      <p class="text-gray-400 text-center mt-4">Preencha os campos acima para enriquecer um novo lead.</p>
-    <% } %>
+      <% if (!lead && !error && (!Array.isArray(leads) || leads.length === 0)) { %>
+        <div class="p-6 bg-gray-50 rounded-lg border border-gray-200 text-center">
+          <p class="text-gray-400">✨ Preencha os campos acima para enriquecer um novo lead.</p>
+        </div>
+      <% } %>
+    </div>
   </div>
 
-  <!-- Modal de Edição -->
-  <div id="editModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" style="display:none;">
-    <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
-      <h3 class="text-lg font-bold mb-4">Editar Lead #<span id="editLeadId"></span></h3>
-      <form id="editForm" onsubmit="event.preventDefault(); submitUpdate();">
-        <input type="email" id="editEmail" required placeholder="E-mail" class="w-full border p-2 rounded mb-2">
-        <input type="text" id="editNome" placeholder="Nome" class="w-full border p-2 rounded mb-2">
-        <input type="text" id="editDominio" placeholder="Domínio" class="w-full border p-2 rounded mb-4">
-        <div class="flex gap-2 justify-end">
-          <button type="button" onclick="closeEdit()" class="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400 transition">Cancelar</button>
-          <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">Salvar</button>
-        </div>
-      </form>
+  <!-- Modal de Edição Responsivo -->
+  <div id="editModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4" style="display:none;">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-sm sm:max-w-md">
+      <div class="p-4 sm:p-6">
+        <h3 class="text-lg font-bold mb-4">✏️ Editar Lead #<span id="editLeadId"></span></h3>
+        <form id="editForm" onsubmit="event.preventDefault(); submitUpdate();">
+          <input type="email" id="editEmail" required placeholder="E-mail *" 
+                 class="w-full border border-gray-300 p-2 rounded mb-3 text-sm focus:ring-2 focus:ring-blue-500">
+          <input type="text" id="editNome" placeholder="Nome" 
+                 class="w-full border border-gray-300 p-2 rounded mb-3 text-sm focus:ring-2 focus:ring-blue-500">
+          <input type="text" id="editDominio" placeholder="Domínio" 
+                 class="w-full border border-gray-300 p-2 rounded mb-4 text-sm focus:ring-2 focus:ring-blue-500">
+          <div class="flex flex-col sm:flex-row gap-2 justify-end">
+            <button type="button" onclick="closeEdit()" 
+                    class="w-full sm:w-auto bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400 transition-smooth">
+              Cancelar
+            </button>
+            <button type="submit" 
+                    class="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-smooth">
+              💾 Salvar
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 
   <script>
-    // Dados dos leads vindos da API
+    // Dados dos leads
     const LEADS_DATA = <%- JSON.stringify(leads) %>;
 
     const LABEL_MAP = {
@@ -213,6 +358,7 @@
     };
 
     function escapeHtml(str) {
+      if (!str) return '';
       return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
 
@@ -232,7 +378,7 @@
           if (val.registrantName) lines.push('Titular: ' + val.registrantName);
           if (val.registrantEmail) lines.push('E-mail: ' + val.registrantEmail);
           if (val.registrationDate) lines.push('Registro: ' + new Date(val.registrationDate).toLocaleDateString('pt-BR'));
-          if (val.expirationDate) lines.push('Expira\u00e7\u00e3o: ' + new Date(val.expirationDate).toLocaleDateString('pt-BR'));
+          if (val.expirationDate) lines.push('Expiração: ' + new Date(val.expirationDate).toLocaleDateString('pt-BR'));
           if (val.nameservers && val.nameservers.length) lines.push('NS: ' + val.nameservers.join(', '));
           if (val.source) lines.push('Fonte: ' + val.source);
           return lines.map(function(l) { return '<div class="text-xs text-gray-700">' + escapeHtml(l) + '</div>'; }).join('') +
@@ -258,7 +404,6 @@
       var detailBody = document.getElementById('leadDetailBody');
       var detailTitle = document.getElementById('leadDetailTitle');
 
-      // Se clicou no mesmo lead, esconde (toggle)
       if (currentLeadId === lead.id) {
         detailDiv.classList.add('hidden');
         currentLeadId = null;
@@ -266,12 +411,12 @@
       }
 
       currentLeadId = lead.id;
-      detailTitle.textContent = 'Detalhes do Lead #' + (lead.id || '');
+      if (detailTitle) detailTitle.textContent = '🔍 Detalhes do Lead #' + (lead.id || '');
       detailBody.innerHTML = Object.keys(lead).map(function(key) {
         var label = LABEL_MAP[key] || key.replace(/_/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
         return '<tr class="hover:bg-gray-50">' +
-          '<td class="border border-gray-300 px-4 py-2 text-sm font-medium text-gray-600">' + label + '</td>' +
-          '<td class="border border-gray-300 px-4 py-2 text-sm text-gray-800">' + formatValue(lead[key], key) + '</td>' +
+          '<td class="border border-gray-300 px-3 py-2 text-sm font-medium text-gray-600">' + label + '</td>' +
+          '<td class="border border-gray-300 px-3 py-2 text-sm text-gray-800">' + formatValue(lead[key], key) + '</td>' +
         '</tr>';
       }).join('');
       detailDiv.classList.remove('hidden');
@@ -279,7 +424,7 @@
     }
 
     async function deleteLead(id) {
-      if (!confirm('Tem certeza que deseja excluir o lead #' + id + '?')) return;
+      if (!confirm('⚠️ Tem certeza que deseja excluir o lead #' + id + '?')) return;
       try {
         var resp = await fetch('/' + id, { method: 'DELETE' });
         var data = await resp.json();
@@ -291,14 +436,16 @@
           if (title && title.textContent.includes('#' + id)) {
             detailDiv.classList.add('hidden');
           }
+          showNotification(true, '✅ Lead excluído com sucesso!');
+          setTimeout(() => location.reload(), 1000);
+        } else {
+          showNotification(false, data.message || data.error || 'Erro ao excluir lead.');
         }
-        showNotification(data.success, data.message || data.error || 'Operação concluída.');
       } catch (e) {
-        showNotification(false, 'Erro ao excluir lead.');
+        showNotification(false, '❌ Erro ao excluir lead.');
       }
     }
 
-    // --- Edição ---
     var editingLeadId = null;
 
     function openEditById(id) {
@@ -333,31 +480,42 @@
         });
         if (resp.ok) {
           closeEdit();
-          location.reload();
+          showNotification(true, '✅ Lead atualizado com sucesso!');
+          setTimeout(() => location.reload(), 800);
         } else {
-          alert('Erro ao atualizar lead.');
+          showNotification(false, '❌ Erro ao atualizar lead.');
         }
       } catch (e) {
-        alert('Erro ao atualizar lead.');
+        showNotification(false, '❌ Erro ao atualizar lead.');
       }
     }
 
     function showNotification(success, message) {
       var el = document.getElementById('notification');
-      el.textContent = message;
-      el.className = 'mb-4 p-3 rounded text-sm ' + (success ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-red-50 border border-red-200 text-red-700');
+      el.innerHTML = message;
+      el.className = 'fixed bottom-4 right-4 z-50 p-3 rounded-lg shadow-lg text-sm ' + 
+                    (success ? 'bg-green-500 text-white' : 'bg-red-500 text-white');
       el.classList.remove('hidden');
       setTimeout(function() { el.classList.add('hidden'); }, 4000);
     }
 
     // Event listeners para clicks nas linhas da tabela
     document.querySelectorAll('tr[data-lead-id]').forEach(function(row) {
-      row.addEventListener('click', function() {
+      row.addEventListener('click', function(e) {
+        if (e.target.tagName === 'BUTTON') return;
         var leadId = parseInt(this.getAttribute('data-lead-id'));
         var lead = LEADS_DATA.find(function(l) { return l.id === leadId; });
         if (lead) showDetail(lead);
       });
     });
+
+    // Fechar modal ao clicar fora
+    window.onclick = function(event) {
+      var modal = document.getElementById('editModal');
+      if (event.target === modal) {
+        closeEdit();
+      }
+    }
   </script>
 </body>
 </html>
