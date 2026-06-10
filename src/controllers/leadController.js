@@ -13,16 +13,15 @@ exports.getIndex = async (req, res) => {
 exports.postEnrich = async (req, res) => {
   try {
     const { email, dominio, nome } = req.body;
-    const lead = await enrichLead(email, dominio, nome);
+    await enrichLead(email, dominio, nome);
+    res.redirect('/');
+  } catch (err) {
     let leads = [];
     try {
       leads = await getLeads();
     } catch (_) {
       leads = getLocalLeads();
     }
-    res.render('pages/index', { leads, lead, error: null });
-  } catch (err) {
-    const leads = getLocalLeads();
     res.render('pages/index', { leads, lead: null, error: 'Erro ao enriquecer lead: ' + err.message });
   }
 };
