@@ -94,6 +94,9 @@
             </thead>
             <tbody id="leadDetailBody">
               <% 
+                const linkify = (str) => {
+                  return str.replace(/(https?:\/\/[^\s<")]+)/g, '<a href="$1" target="_blank" class="text-blue-600 hover:underline">$1</a>');
+                };
                 const formatValue = (val, key) => {
                   if (val === null || val === undefined) return '<span class="text-gray-400 italic">—</span>';
                   if (Array.isArray(val)) {
@@ -102,10 +105,36 @@
                     if (typeof val[0] === 'object' && val[0] !== null) {
                       return '<span class="text-blue-600 font-medium">' + val.length + ' registro(s)</span> <button onclick="event.stopPropagation(); toggleDetail(this)" class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded hover:bg-blue-200">Ver detalhes</button><div class="hidden mt-1"><pre class="text-xs bg-gray-50 p-2 rounded max-h-60 overflow-auto">' + escapeHtml(JSON.stringify(val, null, 2)) + '</pre></div>';
                     }
-                    return val.map(v => '<span class="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded mr-1 mb-1">' + escapeHtml(String(v)) + '</span>').join('');
+                    return val.map(v => '<span class="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded mr-1 mb-1">' + linkify(escapeHtml(String(v))) + '</span>').join('');
                   }
                   if (typeof val === 'boolean') return val ? '<span class="text-green-600 font-bold">✅ Sim</span>' : '<span class="text-red-500">❌ Não</span>';
                   if (typeof val === 'object') {
+                    // serperRawData: mostrar como tabela
+                    if (key === 'serperRawData' && val.items && Array.isArray(val.items)) {
+                      let html = '<div class="text-xs text-gray-700 mb-2"><strong>Query:</strong> ' + escapeHtml(val.query || '') + ' | <strong>Total:</strong> ' + (val.totalResults || 0) + ' resultados</div>';
+                      if (val.items.length > 0) {
+                        html += '<table class="w-full text-xs border-collapse bg-white"><thead><tr class="bg-gray-100">';
+                        html += '<th class="border border-gray-300 px-2 py-1 text-left">#</th>';
+                        html += '<th class="border border-gray-300 px-2 py-1 text-left">Título</th>';
+                        html += '<th class="border border-gray-300 px-2 py-1 text-left">URL</th>';
+                        html += '<th class="border border-gray-300 px-2 py-1 text-left">Snippet</th>';
+                        html += '<th class="border border-gray-300 px-2 py-1 text-left">Domínio</th>';
+                        html += '</tr></thead><tbody>';
+                        val.items.forEach(function(item) {
+                          html += '<tr class="hover:bg-gray-50">';
+                          html += '<td class="border border-gray-300 px-2 py-1">' + (item.position || '') + '</td>';
+                          html += '<td class="border border-gray-300 px-2 py-1 max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap" title="' + escapeHtml(item.title || '') + '">' + escapeHtml(item.title || '') + '</td>';
+                          html += '<td class="border border-gray-300 px-2 py-1 max-w-[250px] overflow-hidden text-ellipsis whitespace-nowrap"><a href="' + escapeHtml(item.url || '') + '" target="_blank" class="text-blue-600 hover:underline" title="' + escapeHtml(item.url || '') + '">' + escapeHtml(item.url || '') + '</a></td>';
+                          html += '<td class="border border-gray-300 px-2 py-1 max-w-[300px] overflow-hidden text-ellipsis whitespace-nowrap" title="' + escapeHtml(item.snippet || '') + '">' + escapeHtml(item.snippet || '') + '</td>';
+                          html += '<td class="border border-gray-300 px-2 py-1">' + escapeHtml(item.domain || '') + '</td>';
+                          html += '</tr>';
+                        });
+                        html += '</tbody></table>';
+                      } else {
+                        html += '<span class="text-gray-400 italic">Nenhum item</span>';
+                      }
+                      return html;
+                    }
                     // rdap: mostrar campos principais
                     if (val.registrantName || val.registrantEmail) {
                       const lines = [];
@@ -120,7 +149,7 @@
                     }
                     return '<pre class="text-xs bg-gray-50 p-2 rounded max-w-lg overflow-auto">' + escapeHtml(JSON.stringify(val, null, 2)) + '</pre>';
                   }
-                  return escapeHtml(String(val));
+                  return linkify(escapeHtml(String(val)));
                 };
                 const escapeHtml = (str) => {
                   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -139,6 +168,8 @@
                   dnsTxtRecords: 'Registros TXT',
                   serperRawData: 'Dados Brutos (Serper)',
                   rdap: 'Registro RDAP (Domínio)',
+                  foundDocuments: 'Documentos Encontrados',
+                  discoveredUrls: 'URLs Descobertas',
                   created_at: 'Criado em', updated_at: 'Atualizado em'
                 };
                 Object.keys(lead).forEach(function(key) {
@@ -209,11 +240,17 @@
       dnsTxtRecords: 'Registros TXT',
       serperRawData: 'Dados Brutos (Serper)',
       rdap: 'Registro RDAP (Domínio)',
+      foundDocuments: 'Documentos Encontrados',
+      discoveredUrls: 'URLs Descobertas',
       created_at: 'Criado em', updated_at: 'Atualizado em'
     };
 
     function escapeHtml(str) {
       return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function linkify(str) {
+      return str.replace(/(https?:\/\/[^\s<")]+)/g, '<a href="$1" target="_blank" class="text-blue-600 hover:underline">$1</a>');
     }
 
     function formatValue(val, key) {
@@ -223,10 +260,36 @@
         if (typeof val[0] === 'object' && val[0] !== null) {
           return '<span class="text-blue-600 font-medium">' + val.length + ' registro(s)</span> <button onclick="event.stopPropagation(); toggleDetail(this)" class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded hover:bg-blue-200">Ver detalhes</button><div class="hidden mt-1"><pre class="text-xs bg-gray-50 p-2 rounded max-h-60 overflow-auto">' + escapeHtml(JSON.stringify(val, null, 2)) + '</pre></div>';
         }
-        return val.map(function(v) { return '<span class="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded mr-1 mb-1">' + escapeHtml(String(v)) + '</span>'; }).join('');
+        return val.map(function(v) { return '<span class="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded mr-1 mb-1">' + linkify(escapeHtml(String(v))) + '</span>'; }).join('');
       }
       if (typeof val === 'boolean') return val ? '<span class="text-green-600 font-bold">✅ Sim</span>' : '<span class="text-red-500">❌ Não</span>';
       if (typeof val === 'object') {
+        // serperRawData: mostrar como tabela
+        if (key === 'serperRawData' && val.items && Array.isArray(val.items)) {
+          var html = '<div class="text-xs text-gray-700 mb-2"><strong>Query:</strong> ' + escapeHtml(val.query || '') + ' | <strong>Total:</strong> ' + (val.totalResults || 0) + ' resultados</div>';
+          if (val.items.length > 0) {
+            html += '<table class="w-full text-xs border-collapse bg-white"><thead><tr class="bg-gray-100">';
+            html += '<th class="border border-gray-300 px-2 py-1 text-left">#</th>';
+            html += '<th class="border border-gray-300 px-2 py-1 text-left">Título</th>';
+            html += '<th class="border border-gray-300 px-2 py-1 text-left">URL</th>';
+            html += '<th class="border border-gray-300 px-2 py-1 text-left">Snippet</th>';
+            html += '<th class="border border-gray-300 px-2 py-1 text-left">Domínio</th>';
+            html += '</tr></thead><tbody>';
+            val.items.forEach(function(item) {
+              html += '<tr class="hover:bg-gray-50">';
+              html += '<td class="border border-gray-300 px-2 py-1">' + (item.position || '') + '</td>';
+              html += '<td class="border border-gray-300 px-2 py-1 max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap" title="' + escapeHtml(item.title || '') + '">' + escapeHtml(item.title || '') + '</td>';
+              html += '<td class="border border-gray-300 px-2 py-1 max-w-[250px] overflow-hidden text-ellipsis whitespace-nowrap"><a href="' + escapeHtml(item.url || '') + '" target="_blank" class="text-blue-600 hover:underline" title="' + escapeHtml(item.url || '') + '">' + escapeHtml(item.url || '') + '</a></td>';
+              html += '<td class="border border-gray-300 px-2 py-1 max-w-[300px] overflow-hidden text-ellipsis whitespace-nowrap" title="' + escapeHtml(item.snippet || '') + '">' + escapeHtml(item.snippet || '') + '</td>';
+              html += '<td class="border border-gray-300 px-2 py-1">' + escapeHtml(item.domain || '') + '</td>';
+              html += '</tr>';
+            });
+            html += '</tbody></table>';
+          } else {
+            html += '<span class="text-gray-400 italic">Nenhum item</span>';
+          }
+          return html;
+        }
         if (val.registrantName || val.registrantEmail) {
           var lines = [];
           if (val.registrantName) lines.push('Titular: ' + val.registrantName);
@@ -240,7 +303,7 @@
         }
         return '<pre class="text-xs bg-gray-50 p-2 rounded max-w-lg overflow-auto">' + escapeHtml(JSON.stringify(val, null, 2)) + '</pre>';
       }
-      return escapeHtml(String(val));
+      return linkify(escapeHtml(String(val)));
     }
 
     function toggleDetail(btn) {
