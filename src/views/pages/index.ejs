@@ -108,8 +108,16 @@
                           <!-- Status (escondido até LG) -->
                           <td class="px-2 sm:px-3 py-2 text-xs hidden lg:table-cell">
                             <% if (item.status) { %>
-                              <span class="inline-block px-2 py-0.5 rounded-full text-xs 
-                                <%= item.status === 'enriched' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' %>">
+                              <%
+                                const statusColors = {
+                                  ACTIVE: 'bg-green-100 text-green-800',
+                                  INACTIVE: 'bg-red-100 text-red-800',
+                                  PENDING: 'bg-yellow-100 text-yellow-800',
+                                  enriched: 'bg-green-100 text-green-800'
+                                };
+                                const statusClass = statusColors[item.status] || 'bg-gray-100 text-gray-800';
+                              %>
+                              <span class="inline-block px-2 py-0.5 rounded-full text-xs <%= statusClass %>">
                                 <%= item.status %>
                               </span>
                             <% } else { %>
@@ -119,8 +127,10 @@
                           
                           <!-- Tecnologias (escondido até LG) -->
                           <td class="px-2 sm:px-3 py-2 text-xs hidden lg:table-cell">
-                            <% if (item.technologies && Array.isArray(item.technologies) && item.technologies.length > 0) { %>
-                              <span class="text-blue-600 font-medium"><%= item.technologies.length %> item(s)</span>
+                            <% if (item.discovery && Array.isArray(item.discovery.technologies) && item.discovery.technologies.length > 0) { %>
+                              <span class="text-blue-600 font-medium"><%= item.discovery.technologies.length %> tech(s)</span>
+                            <% } else if (item.technologies && Array.isArray(item.technologies) && item.technologies.length > 0) { %>
+                              <span class="text-blue-600 font-medium"><%= item.technologies.length %> tech(s)</span>
                             <% } else { %>
                               <span class="text-gray-400 italic">—</span>
                             <% } %>
@@ -128,7 +138,9 @@
                           
                           <!-- E-mails Expostos (escondido até LG) -->
                           <td class="px-2 sm:px-3 py-2 text-xs hidden lg:table-cell">
-                            <% if (item.exposedEmails && Array.isArray(item.exposedEmails) && item.exposedEmails.length > 0) { %>
+                            <% if (item.discovery && Array.isArray(item.discovery.exposedEmails) && item.discovery.exposedEmails.length > 0) { %>
+                              <span class="text-red-600 font-medium"><%= item.discovery.exposedEmails.length %> e-mail(s)</span>
+                            <% } else if (item.exposedEmails && Array.isArray(item.exposedEmails) && item.exposedEmails.length > 0) { %>
                               <span class="text-red-600 font-medium"><%= item.exposedEmails.length %> e-mail(s)</span>
                             <% } else { %>
                               <span class="text-gray-400 italic">—</span>
@@ -190,6 +202,20 @@
         </form>
       </div>
 
+      <!-- Busca por Domínio -->
+      <div class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+        <h2 class="text-lg sm:text-xl font-semibold text-gray-800 mb-3">🔎 Buscar por Domínio</h2>
+        <div class="flex flex-col sm:flex-row gap-2">
+          <input type="text" id="searchDomain" placeholder="ex: exemplo.com" 
+                 class="w-full sm:flex-1 border border-gray-300 p-2 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          <button onclick="searchByDomain()" 
+                  class="w-full sm:w-auto bg-purple-600 text-white px-6 py-2 rounded hover:bg-purple-700 transition-smooth text-sm font-medium">
+            🔎 Buscar
+          </button>
+        </div>
+        <div id="domainResults" class="mt-3 hidden"></div>
+      </div>
+
       <!-- Mensagem de Erro -->
       <% if (error) { %>
         <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
@@ -226,6 +252,64 @@
                   }
                   if (typeof val === 'boolean') return val ? '<span class="text-green-600 font-bold">✅ Sim</span>' : '<span class="text-red-500">❌ Não</span>';
                   if (typeof val === 'object') {
+                    // DNS: mostrar status MX + registros
+                    if (key === 'dns') {
+                      let dnsHtml = '<div class="space-y-1 text-xs">';
+                      dnsHtml += '<div class="flex items-center gap-2 mb-2">';
+                      dnsHtml += '<span class="font-medium">MX:</span> ' + (val.mxStatus ? '<span class="text-green-600 font-bold">✅ Ativo</span>' : '<span class="text-red-500">❌ Inativo</span>');
+                      dnsHtml += '</div>';
+                      const recordTypes = [
+                        { label: 'MX', data: val.mxRecords },
+                        { label: 'A', data: val.aRecords },
+                        { label: 'AAAA', data: val.aaaaRecords },
+                        { label: 'CNAME', data: val.cnameRecords },
+                        { label: 'TXT', data: val.txtRecords }
+                      ];
+                      recordTypes.forEach(function(rt) {
+                        if (rt.data && Array.isArray(rt.data) && rt.data.length > 0) {
+                          dnsHtml += '<div><span class="font-medium text-gray-600">' + rt.label + ':</span> ';
+                          dnsHtml += rt.data.map(function(r) { return '<code class="bg-gray-100 px-1 rounded text-xs">' + escapeHtml(String(r)) + '</code>'; }).join(' ');
+                          dnsHtml += '</div>';
+                        }
+                      });
+                      dnsHtml += '</div>';
+                      dnsHtml += ' <button onclick="event.stopPropagation(); toggleDetail(this)" class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded hover:bg-gray-200 mt-1">JSON completo</button><div class="hidden mt-1"><pre class="text-xs bg-gray-50 p-2 rounded max-h-60 overflow-auto">' + escapeHtml(JSON.stringify(val, null, 2)) + '</pre></div>';
+                      return dnsHtml;
+                    }
+                    // Discovery: mostrar resumo
+                    if (key === 'discovery') {
+                      let discHtml = '<div class="space-y-1 text-xs">';
+                      if (val.technologies && val.technologies.length > 0) {
+                        discHtml += '<div><span class="font-medium text-gray-600">🛠 Tecnologias (' + val.technologies.length + '):</span> ';
+                        discHtml += val.technologies.map(function(t) { return '<span class="inline-block bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs mr-1 mb-1">' + escapeHtml(String(t)) + '</span>'; }).join('');
+                        discHtml += '</div>';
+                      }
+                      if (val.socialLinks && val.socialLinks.length > 0) {
+                        discHtml += '<div class="mt-1"><span class="font-medium text-gray-600">🔗 Links Sociais (' + val.socialLinks.length + '):</span> ';
+                        discHtml += val.socialLinks.slice(0, 3).map(function(s) { return '<a href="' + escapeHtml(s) + '" target="_blank" class="text-blue-600 hover:underline text-xs mr-2">' + escapeHtml(new URL(s).hostname) + '</a>'; }).join('');
+                        if (val.socialLinks.length > 3) discHtml += '<span class="text-gray-400">+ ' + (val.socialLinks.length - 3) + ' mais</span>';
+                        discHtml += '</div>';
+                      }
+                      if (val.socialProfileSummaries && val.socialProfileSummaries.length > 0) {
+                        discHtml += '<div class="mt-1"><span class="font-medium text-gray-600">📝 Perfis (' + val.socialProfileSummaries.length + ' resumos)</span></div>';
+                      }
+                      if (val.nameMentions && val.nameMentions.length > 0) {
+                        discHtml += '<div class="mt-1"><span class="font-medium text-gray-600">👤 Menções (' + val.nameMentions.length + '):</span> ';
+                        discHtml += val.nameMentions.map(function(m) { return '<div class="text-gray-600 ml-2">• ' + linkify(escapeHtml(String(m))) + '</div>'; }).join('');
+                        discHtml += '</div>';
+                      }
+                      if (val.exposedEmails && val.exposedEmails.length > 0) {
+                        discHtml += '<div class="mt-1"><span class="font-medium text-red-600">📧 E-mails Expostos (' + val.exposedEmails.length + '):</span> ';
+                        discHtml += val.exposedEmails.map(function(e) { return '<span class="inline-block bg-red-100 text-red-800 px-2 py-0.5 rounded text-xs mr-1">' + escapeHtml(String(e)) + '</span>'; }).join('');
+                        discHtml += '</div>';
+                      }
+                      if (val.dorkFindings > 0) {
+                        discHtml += '<div class="mt-1"><span class="font-medium text-orange-600">🔍 Dorks: ' + val.dorkFindings + ' encontrado(s)</span></div>';
+                      }
+                      discHtml += '</div>';
+                      discHtml += ' <button onclick="event.stopPropagation(); toggleDetail(this)" class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded hover:bg-gray-200 mt-1">JSON completo</button><div class="hidden mt-1"><pre class="text-xs bg-gray-50 p-2 rounded max-h-60 overflow-auto">' + escapeHtml(JSON.stringify(val, null, 2)) + '</pre></div>';
+                      return discHtml;
+                    }
                     // serperRawData: mostrar como tabela melhorada
                     if (key === 'serperRawData' && val.items && Array.isArray(val.items)) {
                       let html = '<div class="mb-3 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg text-xs text-gray-700">';
@@ -303,9 +387,7 @@
                   exposedDocuments: 'Documentos Expostos', exposedConfigFiles: 'Arquivos de Config Expostos',
                   nameMentions: 'Menções do Nome', nameMentionUrls: 'URLs de Menções',
                   dorkFindings: 'Dorks Encontrados',
-                  dnsMxRecords: 'Registros MX', dnsARecords: 'Registros A',
-                  dnsAaaaRecords: 'Registros AAAA', dnsCnameRecords: 'Registros CNAME',
-                  dnsTxtRecords: 'Registros TXT',
+                  dns: 'DNS (Registros)', discovery: 'Descoberta (Discovery)',
                   rdap: 'Registro RDAP (Domínio)',
                   created_at: 'Criado em', updated_at: 'Atualizado em'
                 };
@@ -395,9 +477,7 @@
       exposedDocuments: 'Documentos Expostos', exposedConfigFiles: 'Arquivos de Config Expostos',
       nameMentions: 'Menções do Nome', nameMentionUrls: 'URLs de Menções',
       dorkFindings: 'Dorks Encontrados',
-      dnsMxRecords: 'Registros MX', dnsARecords: 'Registros A',
-      dnsAaaaRecords: 'Registros AAAA', dnsCnameRecords: 'Registros CNAME',
-      dnsTxtRecords: 'Registros TXT',
+      dns: 'DNS (Registros)', discovery: 'Descoberta (Discovery)',
       rdap: 'Registro RDAP (Domínio)',
       foundDocuments: 'Documentos Encontrados',
       discoveredUrls: 'URLs Descobertas',
@@ -424,6 +504,67 @@
       }
       if (typeof val === 'boolean') return val ? '<span class="text-green-600 font-bold">✅ Sim</span>' : '<span class="text-red-500">❌ Não</span>';
       if (typeof val === 'object') {
+        // DNS: mostrar status MX + registros
+        if (key === 'dns') {
+          var dnsHtml = '<div class="space-y-1 text-xs">';
+          dnsHtml += '<div class="flex items-center gap-2 mb-2">';
+          dnsHtml += '<span class="font-medium">MX:</span> ' + (val.mxStatus ? '<span class="text-green-600 font-bold">✅ Ativo</span>' : '<span class="text-red-500">❌ Inativo</span>');
+          dnsHtml += '</div>';
+          var recordTypes = [
+            { label: 'MX', data: val.mxRecords },
+            { label: 'A', data: val.aRecords },
+            { label: 'AAAA', data: val.aaaaRecords },
+            { label: 'CNAME', data: val.cnameRecords },
+            { label: 'TXT', data: val.txtRecords }
+          ];
+          recordTypes.forEach(function(rt) {
+            if (rt.data && Array.isArray(rt.data) && rt.data.length > 0) {
+              dnsHtml += '<div><span class="font-medium text-gray-600">' + rt.label + ':</span> ';
+              dnsHtml += rt.data.map(function(r) { return '<code class="bg-gray-100 px-1 rounded text-xs">' + escapeHtml(String(r)) + '</code>'; }).join(' ');
+              dnsHtml += '</div>';
+            }
+          });
+          dnsHtml += '</div>';
+          dnsHtml += ' <button onclick="event.stopPropagation(); toggleDetail(this)" class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded hover:bg-gray-200 mt-1">JSON completo</button><div class="hidden mt-1"><pre class="text-xs bg-gray-50 p-2 rounded max-h-60 overflow-auto">' + escapeHtml(JSON.stringify(val, null, 2)) + '</pre></div>';
+          return dnsHtml;
+        }
+        // Discovery: mostrar resumo
+        if (key === 'discovery') {
+          var discHtml = '<div class="space-y-1 text-xs">';
+          if (val.technologies && val.technologies.length > 0) {
+            discHtml += '<div><span class="font-medium text-gray-600">🛠 Tecnologias (' + val.technologies.length + '):</span> ';
+            discHtml += val.technologies.map(function(t) { return '<span class="inline-block bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs mr-1 mb-1">' + escapeHtml(String(t)) + '</span>'; }).join('');
+            discHtml += '</div>';
+          }
+          if (val.socialLinks && val.socialLinks.length > 0) {
+            discHtml += '<div class="mt-1"><span class="font-medium text-gray-600">🔗 Links Sociais (' + val.socialLinks.length + '):</span> ';
+            discHtml += val.socialLinks.slice(0, 3).map(function(s) { 
+              try { return '<a href="' + escapeHtml(s) + '" target="_blank" class="text-blue-600 hover:underline text-xs mr-2">' + escapeHtml(new URL(s).hostname) + '</a>'; }
+              catch(e) { return '<a href="' + escapeHtml(s) + '" target="_blank" class="text-blue-600 hover:underline text-xs mr-2">' + escapeHtml(s) + '</a>'; }
+            }).join('');
+            if (val.socialLinks.length > 3) discHtml += '<span class="text-gray-400">+ ' + (val.socialLinks.length - 3) + ' mais</span>';
+            discHtml += '</div>';
+          }
+          if (val.socialProfileSummaries && val.socialProfileSummaries.length > 0) {
+            discHtml += '<div class="mt-1"><span class="font-medium text-gray-600">📝 Perfis (' + val.socialProfileSummaries.length + ' resumos)</span></div>';
+          }
+          if (val.nameMentions && val.nameMentions.length > 0) {
+            discHtml += '<div class="mt-1"><span class="font-medium text-gray-600">👤 Menções (' + val.nameMentions.length + '):</span> ';
+            discHtml += val.nameMentions.map(function(m) { return '<div class="text-gray-600 ml-2">• ' + linkify(escapeHtml(String(m))) + '</div>'; }).join('');
+            discHtml += '</div>';
+          }
+          if (val.exposedEmails && val.exposedEmails.length > 0) {
+            discHtml += '<div class="mt-1"><span class="font-medium text-red-600">📧 E-mails Expostos (' + val.exposedEmails.length + '):</span> ';
+            discHtml += val.exposedEmails.map(function(e) { return '<span class="inline-block bg-red-100 text-red-800 px-2 py-0.5 rounded text-xs mr-1">' + escapeHtml(String(e)) + '</span>'; }).join('');
+            discHtml += '</div>';
+          }
+          if (val.dorkFindings > 0) {
+            discHtml += '<div class="mt-1"><span class="font-medium text-orange-600">🔍 Dorks: ' + val.dorkFindings + ' encontrado(s)</span></div>';
+          }
+          discHtml += '</div>';
+          discHtml += ' <button onclick="event.stopPropagation(); toggleDetail(this)" class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded hover:bg-gray-200 mt-1">JSON completo</button><div class="hidden mt-1"><pre class="text-xs bg-gray-50 p-2 rounded max-h-60 overflow-auto">' + escapeHtml(JSON.stringify(val, null, 2)) + '</pre></div>';
+          return discHtml;
+        }
         // serperRawData: mostrar como tabela melhorada
         if (key === 'serperRawData' && val.items && Array.isArray(val.items)) {
           var html = '<div class="mb-3 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg text-xs text-gray-700">';
@@ -598,6 +739,81 @@
       el.classList.remove('hidden');
       setTimeout(function() { el.classList.add('hidden'); }, 4000);
     }
+
+    // ========== Busca por Domínio ==========
+    async function searchByDomain() {
+      var domain = document.getElementById('searchDomain').value.trim();
+      if (!domain) {
+        showNotification(false, '❌ Informe um domínio para buscar.');
+        return;
+      }
+
+      var resultsDiv = document.getElementById('domainResults');
+      resultsDiv.classList.remove('hidden');
+      resultsDiv.innerHTML = '<p class="text-gray-500 text-sm">🔍 Buscando leads para <strong>' + escapeHtml(domain) + '</strong>...</p>';
+
+      try {
+        var resp = await fetch('/domain/' + encodeURIComponent(domain));
+        if (resp.status === 204 || resp.status === 404) {
+          resultsDiv.innerHTML = '<div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-700">📭 Nenhum lead encontrado para o domínio <strong>' + escapeHtml(domain) + '</strong></div>';
+          return;
+        }
+        var data = await resp.json();
+        if (data.success && Array.isArray(data.leads) && data.leads.length > 0) {
+          var html = '<div class="bg-white rounded-lg border border-gray-200 overflow-x-auto">';
+          html += '<table class="w-full text-xs">';
+          html += '<thead><tr class="bg-purple-600 text-white">';
+          html += '<th class="px-2 py-2 text-left">ID</th>';
+          html += '<th class="px-2 py-2 text-left">E-mail</th>';
+          html += '<th class="px-2 py-2 text-left">Nome</th>';
+          html += '<th class="px-2 py-2 text-left">Domínio</th>';
+          html += '<th class="px-2 py-2 text-left">Status</th>';
+          html += '<th class="px-2 py-2 text-center">Ações</th>';
+          html += '</tr></thead><tbody>';
+          data.leads.forEach(function(item, idx) {
+            html += '<tr class="' + (idx % 2 === 0 ? 'bg-gray-50' : 'bg-white') + ' hover:bg-purple-50 transition-smooth">';
+            html += '<td class="px-2 py-2 font-mono">' + (item.id || '—') + '</td>';
+            html += '<td class="px-2 py-2 break-words">' + escapeHtml(item.emailMasked || item.email || '—') + '</td>';
+            html += '<td class="px-2 py-2 font-medium">' + escapeHtml(item.name || '—') + '</td>';
+            html += '<td class="px-2 py-2">' + escapeHtml(item.domain || '—') + '</td>';
+            html += '<td class="px-2 py-2"><span class="inline-block px-2 py-0.5 rounded-full text-xs ' + (item.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800') + '">' + (item.status || '—') + '</span></td>';
+            html += '<td class="px-2 py-2 text-center"><button onclick="event.stopPropagation(); fetchAndShowLead(' + item.id + ')" class="bg-purple-500 text-white text-xs px-2 py-1 rounded hover:bg-purple-600 transition-smooth">👁 Ver</button></td>';
+            html += '</tr>';
+          });
+          html += '</tbody></table></div>';
+          html += '<p class="text-xs text-gray-500 mt-2">' + data.leads.length + ' lead(s) encontrado(s)</p>';
+          resultsDiv.innerHTML = html;
+        } else {
+          resultsDiv.innerHTML = '<div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-700">📭 Nenhum lead encontrado para <strong>' + escapeHtml(domain) + '</strong></div>';
+        }
+      } catch (e) {
+        resultsDiv.innerHTML = '<div class="p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">❌ Erro ao buscar: ' + escapeHtml(e.message) + '</div>';
+      }
+    }
+
+    // ========== Buscar lead por ID via API ==========
+    async function fetchAndShowLead(id) {
+      try {
+        var resp = await fetch('/' + id);
+        if (!resp.ok) {
+          showNotification(false, '❌ Lead #' + id + ' não encontrado.');
+          return;
+        }
+        var data = await resp.json();
+        if (data.success && data.lead) {
+          showDetail(data.lead);
+        } else {
+          showNotification(false, '❌ Erro ao carregar lead #' + id);
+        }
+      } catch (e) {
+        showNotification(false, '❌ Erro ao buscar lead: ' + e.message);
+      }
+    }
+
+    // Enter para buscar domínio
+    document.getElementById('searchDomain').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') searchByDomain();
+    });
 
     // Event listeners para clicks nas linhas da tabela
     document.querySelectorAll('tr[data-lead-id]').forEach(function(row) {

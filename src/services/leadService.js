@@ -7,9 +7,6 @@ const api = axios.create({
   }
 });
 
-// Armazenamento local de leads enriquecidos (em memória)
-const leadsStore = [];
-
 /**
  * Extrai um array de leads de diferentes formatos de resposta da API.
  * @param {*} body - Corpo da resposta da API
@@ -27,34 +24,95 @@ const extractLeadsFromBody = (body) => {
   return [];
 };
 
+/**
+ * Normaliza um lead da estrutura aninhada da API (dns, discovery, rdap)
+ * para manter compatibilidade com a view (campos "flat" para a tabela).
+ * @param {Object} lead
+ * @returns {Object}
+ */
+const normalizeLead = (lead) => {
+  if (!lead) return lead;
+  return {
+    ...lead,
+    // Flatten DNS para compatibilidade com a tabela
+    mxStatus: lead.dns?.mxStatus,
+    // Flatten Discovery para compatibilidade com a tabela
+    technologies: lead.discovery?.technologies,
+    socialLinks: lead.discovery?.socialLinks,
+    socialProfileSummaries: lead.discovery?.socialProfileSummaries,
+    exposedEmails: lead.discovery?.exposedEmails,
+    nameMentions: lead.discovery?.nameMentions,
+    nameMentionUrls: lead.discovery?.nameMentionUrls,
+    dorkFindings: lead.discovery?.dorkFindings,
+    foundDocuments: lead.discovery?.foundDocuments,
+    discoveredUrls: lead.discovery?.discoveredUrls,
+    openSerpRawData: lead.discovery?.openSerpRawData,
+  };
+};
+
+/**
+ * GET /api/v1/leads — Lista todos os leads com status ACTIVE
+ */
 const getLeads = async () => {
   const response = await api.get('');
-  return extractLeadsFromBody(response.data);
+  const leads = extractLeadsFromBody(response.data);
+  return leads.map(normalizeLead);
 };
 
-const getLocalLeads = () => {
-  return [...leadsStore];
+/**
+ * GET /api/v1/leads/{id} — Obtém um lead pelo ID
+ */
+const getLeadById = async (id) => {
+  const response = await api.get(`/${id}`);
+  return normalizeLead(response.data);
 };
 
+/**
+ * GET /api/v1/leads/domain/{domain} — Lista leads por domínio
+ */
+const getLeadsByDomain = async (domain) => {
+  const response = await api.get(`/domain/${encodeURIComponent(domain)}`);
+  const leads = extractLeadsFromBody(response.data);
+  return leads.map(normalizeLead);
+};
+
+/**
+ * POST /api/v1/leads/enrich — Enriquece um lead com dados públicos
+ *
+ * A API retorna um array de leads do mesmo domínio.
+ * Extraímos o primeiro lead enriquecido como principal.
+ */
 const enrichLead = async (email, dominio, nome) => {
   const response = await api.post('/enrich', { email, domain: dominio, name: nome });
-  const lead = response.data;
-  // Se a resposta vier encapsulada em data, extrai o lead
-  const enrichedLead = (lead && lead.data && typeof lead.data === 'object' && !Array.isArray(lead.data))
-    ? lead.data
-    : lead;
-  leadsStore.unshift(enrichedLead);
-  return enrichedLead;
+  const body = response.data;
+
+  // A API retorna um array (conforme OpenAPI spec):
+  // type: array, items: LeadResponse
+  const leads = extractLeadsFromBody(body);
+
+  if (Array.isArray(leads) && leads.length > 0) {
+    // Retorna o primeiro lead da lista como o recém-enriquecido
+    return normalizeLead(leads[0]);
+  }
+
+  // Fallback: tenta tratar como objeto único
+  return normalizeLead(body);
 };
 
-const deleteLead = async (id) => {
-  const response = await api.delete('/' + id);
-  return response.data;
-};
-
+/**
+ * PUT /api/v1/leads/{id} — Atualiza um lead e reenriquece
+ */
 const updateLead = async (id, data) => {
-  const response = await api.put('/' + id, data);
+  const response = await api.put(`/${id}`, data);
+  return normalizeLead(response.data);
+};
+
+/**
+ * DELETE /api/v1/leads/{id} — Exclui um lead permanentemente (hard delete)
+ */
+const deleteLead = async (id) => {
+  const response = await api.delete(`/${id}`);
   return response.data;
 };
 
-module.exports = { getLeads, getLocalLeads, enrichLead, deleteLead, updateLead };
+module.exports = { getLeads, getLeadById, getLeadsByDomain, enrichLead, deleteLead, updateLead };
