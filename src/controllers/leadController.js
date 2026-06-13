@@ -9,12 +9,18 @@ const {
 
 exports.getIndex = async (req, res) => {
   let leads = [];
+  let pagination = null;
   try {
-    leads = await getLeads();
+    const page = parseInt(req.query.page, 10) || 0;
+    const size = parseInt(req.query.size, 10) || 20;
+    const sort = req.query.sort || 'createdAt,desc';
+    const result = await getLeads({ page, size, sort });
+    leads = result.leads;
+    pagination = result.pagination;
   } catch (err) {
     console.error('Erro ao buscar leads da API:', err.message);
   }
-  res.render('pages/index', { leads, lead: null, error: null });
+  res.render('pages/index', { leads, pagination, lead: null, error: null });
 };
 
 exports.postEnrich = async (req, res) => {
@@ -24,10 +30,13 @@ exports.postEnrich = async (req, res) => {
     res.redirect('/');
   } catch (err) {
     let leads = [];
+    let pagination = null;
     try {
-      leads = await getLeads();
+      const result = await getLeads();
+      leads = result.leads;
+      pagination = result.pagination;
     } catch (_) { /* ignore */ }
-    res.render('pages/index', { leads, lead: null, error: 'Erro ao enriquecer lead: ' + err.message });
+    res.render('pages/index', { leads, pagination, lead: null, error: 'Erro ao enriquecer lead: ' + err.message });
   }
 };
 
@@ -47,15 +56,21 @@ exports.getLead = async (req, res) => {
 };
 
 /**
- * GET /domain/{domain} — Busca leads por domínio via API
+ * GET /domain/{domain} — Busca leads por domínio via API (paginado)
  */
 exports.getByDomain = async (req, res) => {
   try {
-    const leads = await getLeadsByDomain(req.params.domain);
-    res.json({ success: true, leads });
+    const page = parseInt(req.query.page, 10) || 0;
+    const size = parseInt(req.query.size, 10) || 20;
+    const sort = req.query.sort || 'createdAt,desc';
+    const result = await getLeadsByDomain(req.params.domain, { page, size, sort });
+    res.json({ success: true, leads: result.leads, pagination: result.pagination });
   } catch (err) {
     if (err.response && err.response.status === 404) {
       return res.status(404).json({ success: false, error: 'Nenhum lead encontrado para este domínio' });
+    }
+    if (err.response && err.response.status === 204) {
+      return res.json({ success: true, leads: [], pagination: null });
     }
     res.status(500).json({ success: false, error: err.message });
   }

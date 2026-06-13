@@ -44,10 +44,55 @@
         <div class="mb-8">
           <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
             <h2 class="text-lg sm:text-xl font-semibold text-gray-800">📋 Leads Cadastrados</h2>
-            <span class="text-xs sm:text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-              Total: <%= leads.length %> lead(s)
-            </span>
+            <div class="flex flex-wrap items-center gap-2">
+              <% if (pagination) { %>
+                <span class="text-xs sm:text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                  Página <%= pagination.number + 1 %> de <%= pagination.totalPages %> · <%= pagination.totalElements %> lead(s)
+                </span>
+              <% } else { %>
+                <span class="text-xs sm:text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                  Total: <%= leads.length %> lead(s)
+                </span>
+              <% } %>
+            </div>
           </div>
+          
+          <!-- Paginação -->
+          <% if (pagination && pagination.totalPages > 1) { %>
+            <div class="flex flex-wrap items-center justify-between mb-3 gap-2">
+              <div class="flex items-center gap-1">
+                <% if (pagination.number > 0) { %>
+                  <a href="/?page=0&size=<%= pagination.size %>" class="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition-smooth" title="Primeira página">⏮</a>
+                  <a href="/?page=<%= pagination.number - 1 %>&size=<%= pagination.size %>" class="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition-smooth" title="Anterior">◀</a>
+                <% } %>
+                <% 
+                  const currentPage = pagination.number;
+                  const totalPages = pagination.totalPages;
+                  const startPage = Math.max(0, currentPage - 2);
+                  const endPage = Math.min(totalPages - 1, currentPage + 2);
+                  for (let p = startPage; p <= endPage; p++) {
+                %>
+                  <a href="/?page=<%= p %>&size=<%= pagination.size %>" 
+                     class="px-3 py-1 text-xs rounded transition-smooth <%= p === currentPage ? 'bg-blue-600 text-white font-bold' : 'bg-gray-100 text-gray-600 hover:bg-gray-200' %>">
+                    <%= p + 1 %>
+                  </a>
+                <% } %>
+                <% if (pagination.number < pagination.totalPages - 1) { %>
+                  <a href="/?page=<%= pagination.number + 1 %>&size=<%= pagination.size %>" class="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition-smooth" title="Próxima">▶</a>
+                  <a href="/?page=<%= pagination.totalPages - 1 %>&size=<%= pagination.size %>" class="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition-smooth" title="Última página">⏭</a>
+                <% } %>
+              </div>
+              <div class="flex items-center gap-1">
+                <span class="text-xs text-gray-400">Itens/página:</span>
+                <% [10, 20, 50, 100].forEach(function(s) { %>
+                  <a href="/?page=0&size=<%= s %>" 
+                     class="px-2 py-1 text-xs rounded transition-smooth <%= pagination.size === s ? 'bg-blue-600 text-white font-bold' : 'bg-gray-100 text-gray-600 hover:bg-gray-200' %>">
+                    <%= s %>
+                  </a>
+                <% }); %>
+              </div>
+            </div>
+          <% } %>
           
           <!-- Tabela Responsiva -->
           <div class="overflow-x-auto shadow-md rounded-lg border border-gray-200">

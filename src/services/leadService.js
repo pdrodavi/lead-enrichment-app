@@ -46,17 +46,41 @@ const normalizeLead = (lead) => {
     dorkFindings: lead.discovery?.dorkFindings,
     foundDocuments: lead.discovery?.foundDocuments,
     discoveredUrls: lead.discovery?.discoveredUrls,
+    // O campo no schema OpenAPI é "openSerpRawData" (dentro de DiscoveryData)
     openSerpRawData: lead.discovery?.openSerpRawData,
+    // Alias para compatibilidade com a view (que usa "serperRawData")
+    serperRawData: lead.discovery?.openSerpRawData,
   };
 };
 
 /**
- * GET /api/v1/leads — Lista todos os leads com status ACTIVE
+ * GET /api/v1/leads — Lista todos os leads com status ACTIVE (paginado)
+ *
+ * @param {Object} options - Opções de paginação
+ * @param {number} [options.page=0] - Número da página (0-based)
+ * @param {number} [options.size=20] - Itens por página
+ * @param {string} [options.sort='createdAt,desc'] - Campo de ordenação
+ * @returns {Promise<{leads: Array, pagination: Object}>} Leads normalizados + metadados de paginação
  */
-const getLeads = async () => {
-  const response = await api.get('');
-  const leads = extractLeadsFromBody(response.data);
-  return leads.map(normalizeLead);
+const getLeads = async ({ page = 0, size = 20, sort = 'createdAt,desc' } = {}) => {
+  const response = await api.get('', {
+    params: { page, size, sort }
+  });
+  const body = response.data;
+
+  // A API retorna PagedLeadResponse com { content, page: { size, totalElements, totalPages, number } }
+  const leads = extractLeadsFromBody(body);
+  const pagination = body?.page ? {
+    size: body.page.size,
+    totalElements: body.page.totalElements,
+    totalPages: body.page.totalPages,
+    number: body.page.number,
+  } : null;
+
+  return {
+    leads: leads.map(normalizeLead),
+    pagination,
+  };
 };
 
 /**
@@ -68,12 +92,34 @@ const getLeadById = async (id) => {
 };
 
 /**
- * GET /api/v1/leads/domain/{domain} — Lista leads por domínio
+ * GET /api/v1/leads/domain/{domain} — Lista leads por domínio (paginado)
+ *
+ * @param {string} domain - Domínio para filtrar
+ * @param {Object} [options] - Opções de paginação
+ * @param {number} [options.page=0] - Número da página (0-based)
+ * @param {number} [options.size=20] - Itens por página
+ * @param {string} [options.sort='createdAt,desc'] - Campo de ordenação
+ * @returns {Promise<{leads: Array, pagination: Object|null}>}
  */
-const getLeadsByDomain = async (domain) => {
-  const response = await api.get(`/domain/${encodeURIComponent(domain)}`);
-  const leads = extractLeadsFromBody(response.data);
-  return leads.map(normalizeLead);
+const getLeadsByDomain = async (domain, { page = 0, size = 20, sort = 'createdAt,desc' } = {}) => {
+  const response = await api.get(`/domain/${encodeURIComponent(domain)}`, {
+    params: { page, size, sort }
+  });
+  const body = response.data;
+
+  // Pode retornar PagedLeadResponse ou array direto (204 se vazio)
+  const leads = extractLeadsFromBody(body);
+  const pagination = body?.page ? {
+    size: body.page.size,
+    totalElements: body.page.totalElements,
+    totalPages: body.page.totalPages,
+    number: body.page.number,
+  } : null;
+
+  return {
+    leads: leads.map(normalizeLead),
+    pagination,
+  };
 };
 
 /**
