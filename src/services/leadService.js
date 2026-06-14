@@ -35,7 +35,8 @@ const normalizeLead = (lead) => {
   return {
     ...lead,
     // Flatten DNS para compatibilidade com a tabela
-    mxStatus: lead.dns?.mxStatus,
+    // Preserva mxStatus do summary (LeadResponseSummary) se não houver dns aninhado
+    mxStatus: lead.dns?.mxStatus ?? lead.mxStatus,
     // Flatten Discovery para compatibilidade com a tabela
     technologies: lead.discovery?.technologies,
     socialLinks: lead.discovery?.socialLinks,

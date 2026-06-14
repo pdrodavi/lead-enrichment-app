@@ -115,7 +115,8 @@
                       <!-- Colunas visíveis a partir de LG (1024px) -->
                       <th scope="col" class="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-white uppercase tracking-wider hidden lg:table-cell">Status</th>
                       <th scope="col" class="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-white uppercase tracking-wider hidden lg:table-cell">Techs</th>
-                      <th scope="col" class="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-white uppercase tracking-wider hidden lg:table-cell">E-mails Expostos</th>
+                      <th scope="col" class="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-white uppercase tracking-wider hidden lg:table-cell">Social</th>
+                      <th scope="col" class="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-white uppercase tracking-wider hidden lg:table-cell">Docs</th>
                       
                       <!-- Ações sempre visíveis -->
                       <th scope="col" class="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium text-white uppercase tracking-wider">Ações</th>
@@ -172,7 +173,9 @@
                           
                           <!-- Tecnologias (escondido até LG) -->
                           <td class="px-2 sm:px-3 py-2 text-xs hidden lg:table-cell">
-                            <% if (item.discovery && Array.isArray(item.discovery.technologies) && item.discovery.technologies.length > 0) { %>
+                            <% if (item.technologiesCount > 0) { %>
+                              <span class="text-blue-600 font-medium"><%= item.technologiesCount %> tech(s)</span>
+                            <% } else if (item.discovery && Array.isArray(item.discovery.technologies) && item.discovery.technologies.length > 0) { %>
                               <span class="text-blue-600 font-medium"><%= item.discovery.technologies.length %> tech(s)</span>
                             <% } else if (item.technologies && Array.isArray(item.technologies) && item.technologies.length > 0) { %>
                               <span class="text-blue-600 font-medium"><%= item.technologies.length %> tech(s)</span>
@@ -181,12 +184,27 @@
                             <% } %>
                           </td>
                           
-                          <!-- E-mails Expostos (escondido até LG) -->
+                          <!-- Social Links (escondido até LG) -->
                           <td class="px-2 sm:px-3 py-2 text-xs hidden lg:table-cell">
-                            <% if (item.discovery && Array.isArray(item.discovery.exposedEmails) && item.discovery.exposedEmails.length > 0) { %>
-                              <span class="text-red-600 font-medium"><%= item.discovery.exposedEmails.length %> e-mail(s)</span>
-                            <% } else if (item.exposedEmails && Array.isArray(item.exposedEmails) && item.exposedEmails.length > 0) { %>
-                              <span class="text-red-600 font-medium"><%= item.exposedEmails.length %> e-mail(s)</span>
+                            <% if (item.socialLinksCount > 0) { %>
+                              <span class="text-purple-600 font-medium"><%= item.socialLinksCount %> link(s)</span>
+                            <% } else if (item.discovery && Array.isArray(item.discovery.socialLinks) && item.discovery.socialLinks.length > 0) { %>
+                              <span class="text-purple-600 font-medium"><%= item.discovery.socialLinks.length %> link(s)</span>
+                            <% } else if (item.socialLinks && Array.isArray(item.socialLinks) && item.socialLinks.length > 0) { %>
+                              <span class="text-purple-600 font-medium"><%= item.socialLinks.length %> link(s)</span>
+                            <% } else { %>
+                              <span class="text-gray-400 italic">—</span>
+                            <% } %>
+                          </td>
+                          
+                          <!-- Documentos (escondido até LG) -->
+                          <td class="px-2 sm:px-3 py-2 text-xs hidden lg:table-cell">
+                            <% if (item.documentsCount > 0) { %>
+                              <span class="text-orange-600 font-medium"><%= item.documentsCount %> doc(s)</span>
+                            <% } else if (item.discovery && Array.isArray(item.discovery.foundDocuments) && item.discovery.foundDocuments.length > 0) { %>
+                              <span class="text-orange-600 font-medium"><%= item.discovery.foundDocuments.length %> doc(s)</span>
+                            <% } else if (item.foundDocuments && Array.isArray(item.foundDocuments) && item.foundDocuments.length > 0) { %>
+                              <span class="text-orange-600 font-medium"><%= item.foundDocuments.length %> doc(s)</span>
                             <% } else { %>
                               <span class="text-gray-400 italic">—</span>
                             <% } %>
@@ -209,7 +227,7 @@
                       <% }); %>
                     <% } else { %>
                       <tr>
-                        <td colspan="9" class="px-3 py-8 text-center text-gray-400">
+                        <td colspan="10" class="px-3 py-8 text-center text-gray-400">
                           Nenhum lead encontrado
                         </td>
                       </tr>
@@ -861,12 +879,12 @@
     });
 
     // Event listeners para clicks nas linhas da tabela
+    // Faz um getById na API para carregar todos os dados completos (dns, discovery, rdap)
     document.querySelectorAll('tr[data-lead-id]').forEach(function(row) {
       row.addEventListener('click', function(e) {
         if (e.target.tagName === 'BUTTON') return;
         var leadId = parseInt(this.getAttribute('data-lead-id'));
-        var lead = LEADS_DATA.find(function(l) { return l.id === leadId; });
-        if (lead) showDetail(lead);
+        fetchAndShowLead(leadId);
       });
     });
 
